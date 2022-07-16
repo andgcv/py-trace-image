@@ -1,43 +1,36 @@
 from load_write_image import load_image
-import math
 import cv2
 import numpy
 
+# Load and resize the image
 img = load_image()
-img_small = cv2.resize(img, (960, 540))
+img_small = cv2.resize(img, (1080, 720))
+# img_small = cv2.resize(img, (720, 1080))
 
+def preprocess_blur():
+    # Preprocess image with blur to improve edge map output
+    img_median_blur = cv2.medianBlur(img_small, 3)
+    img_bilateral_filter = cv2.bilateralFilter(img_median_blur, 11, 21, 7)
+
+    return img_bilateral_filter
 
 def trace_image():
-    canny_trace = cv2.Canny(img_small, 50, 200, None, 3)
+    # Trace image using the Canny algorithm
+    canny_edges = cv2.Canny(preprocess_blur(), 725, 1200, None, 5)
 
-    # Copy edges to separate images
-    trace_output = cv2.cvtColor(canny_trace, cv2.COLOR_GRAY2BGR)
-    trace_output_probabilistic = numpy.copy(trace_output)
+    # Find line segments using the probabilistic Hough transform
+    trace_output_probabilistic = cv2.cvtColor(canny_edges, cv2.COLOR_GRAY2BGR)
+    edge_map_probabilistic = cv2.HoughLinesP(canny_edges, 2, numpy.pi / 180, 8, None, 1, 3)
 
-    edges = cv2.HoughLines(canny_trace, 1, numpy.pi / 180, 150, None, 0, 0)
+    # Draw lines through the line segments found
+    if edge_map_probabilistic is not None:
+        for i in range(0, len(edge_map_probabilistic)):
+            line = edge_map_probabilistic[i][0]
+            cv2.line(trace_output_probabilistic, (line[0], line[1]), (line[2], line[3]), (245,100,245), 1, cv2.LINE_AA)
 
-    if edges is not None:
-        for i in range(0, len(edges)):
-            rho = edges[i][0][0]
-            theta = edges[i][0][1]
-            a = math.cos(theta)
-            b = math.sin(theta)
-            x0 = a * rho
-            y0 = b * rho
-            pt1 = (int(x0 + 1000 * (-b)), int(y0 + 1000 * (a)))
-            pt2 = (int(x0 - 1000 * (-b)), int(y0 - 1000 * (a)))
-
-            cv2.line(trace_output, pt1, pt2, (0,0,255), 1, cv2.LINE_AA)
-
-    edges_probabilistic = cv2.HoughLinesP(canny_trace, 1, numpy.pi / 180, 12, None, 1, 3)
-
-    if edges_probabilistic is not None:
-        for i in range(0, len(edges_probabilistic)):
-            line = edges_probabilistic[i][0]
-            cv2.line(trace_output_probabilistic, (line[0], line[1]), (line[2], line[3]), (0,0,255), 1, cv2.LINE_AA)
-
+    # Show the source and output
     cv2.imshow("Source", img_small)
-    cv2.imshow("Trace Output", trace_output)
+    cv2.imshow("Edge Map", canny_edges)
     cv2.imshow("Trace Output - Probabilistic", trace_output_probabilistic)
 
     cv2.waitKey()
