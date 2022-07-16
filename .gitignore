@@ -131,6 +131,5 @@ dmypy.json
 # IntelliJ
 .idea
 
-# Test image output
-image.jpg
-image_edit.jpg
+# Test images
+images/
