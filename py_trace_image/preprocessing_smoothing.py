@@ -1,5 +1,5 @@
 from load_src_image import load_image
-from cv2 import resize, medianBlur, bilateralFilter, imshow, waitKey
+from cv2 import medianBlur, bilateralFilter, imshow
 
 # Load the src image
 img = load_image()

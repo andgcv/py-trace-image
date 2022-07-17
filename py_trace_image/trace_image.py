@@ -38,6 +38,3 @@ def draw_lines():
 
     waitKey()
 
-
-if __name__ == "__main__":
-    draw_lines()
