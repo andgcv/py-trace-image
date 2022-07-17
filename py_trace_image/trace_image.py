@@ -1,40 +1,43 @@
-from load_write_image import load_image
-import cv2
-import numpy
+from preprocessing_gradient import apply_gradient
+from cv2 import Canny, cvtColor, COLOR_GRAY2BGR, HoughLinesP, line, LINE_AA, imshow, waitKey
+from numpy import pi
 
-# Load and resize the image
-img = load_image()
-img_small = cv2.resize(img, (1080, 720))
-# img_small = cv2.resize(img, (720, 1080))
+# Load preprocessed image
+img = apply_gradient()
 
-def preprocess_blur():
-    # Preprocess image with blur to improve edge map output
-    img_median_blur = cv2.medianBlur(img_small, 3)
-    img_bilateral_filter = cv2.bilateralFilter(img_median_blur, 11, 21, 7)
+canny_edges = None
+trace_output_probabilistic = None
+edge_map_probabilistic = None
 
-    return img_bilateral_filter
 
-def trace_image():
+def find_edge():
+    global canny_edges
+    global trace_output_probabilistic
+    global edge_map_probabilistic
+
     # Trace image using the Canny algorithm
-    canny_edges = cv2.Canny(preprocess_blur(), 725, 1200, None, 5)
+    canny_edges = Canny(img, 725, 1200, None, 5)
 
     # Find line segments using the probabilistic Hough transform
-    trace_output_probabilistic = cv2.cvtColor(canny_edges, cv2.COLOR_GRAY2BGR)
-    edge_map_probabilistic = cv2.HoughLinesP(canny_edges, 2, numpy.pi / 180, 8, None, 1, 3)
+    trace_output_probabilistic = cvtColor(canny_edges, COLOR_GRAY2BGR)
+    edge_map_probabilistic = HoughLinesP(canny_edges, 2, pi / 180, 8, None, 1, 3)
+
+
+def draw_lines():
+    # Define the edge map and find line segments
+    find_edge()
 
     # Draw lines through the line segments found
     if edge_map_probabilistic is not None:
         for i in range(0, len(edge_map_probabilistic)):
-            line = edge_map_probabilistic[i][0]
-            cv2.line(trace_output_probabilistic, (line[0], line[1]), (line[2], line[3]), (245,100,245), 1, cv2.LINE_AA)
+            line_arr = edge_map_probabilistic[i][0]
+            line(trace_output_probabilistic, (line_arr[0], line_arr[1]), (line_arr[2], line_arr[3]), (245, 100, 245), 1, LINE_AA)
 
-    # Show the source and output
-    cv2.imshow("Source", img_small)
-    cv2.imshow("Edge Map", canny_edges)
-    cv2.imshow("Trace Output - Probabilistic", trace_output_probabilistic)
+    imshow("Edge Map", canny_edges)
+    imshow("Trace Output - Probabilistic", trace_output_probabilistic)
 
-    cv2.waitKey()
-    return 0
+    waitKey()
+
 
 if __name__ == "__main__":
-    trace_image()
+    draw_lines()
